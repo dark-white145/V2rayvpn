@@ -130,7 +130,7 @@ def main():
     result = alive + maybe
 
     # 🔥 ограничение количества (можешь менять)
-    result = result[:120]
+    result = result[:600]
 
     print(f"ALIVE: {len(alive)} | TOTAL USED: {len(result)}")
 
