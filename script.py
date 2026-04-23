@@ -5,10 +5,12 @@ import socket
 
 OUTPUT_FILE = "sub_base64.txt"
 
+# 🔗 загрузка источников
 def load_sources():
     with open("sources.txt", "r") as f:
         return [line.strip() for line in f if line.strip()]
 
+# 🌐 получение конфигов
 def fetch_configs(urls):
     all_lines = []
     for url in urls:
@@ -30,13 +32,15 @@ def fetch_configs(urls):
 
     return all_lines
 
+# 🔌 проверка порта
 def is_alive(host, port):
     try:
-        socket.create_connection((host, int(port)), timeout=2)
+        socket.create_connection((host, int(port)), timeout=3)
         return True
     except:
         return False
 
+# 📦 достаём host и port
 def get_host_port(line):
     try:
         main = line.split("://")[1]
@@ -47,7 +51,7 @@ def get_host_port(line):
     except:
         return None, None
 
-# 🌍 Определение страны
+# 🌍 страна по IP
 def get_country(ip):
     try:
         r = requests.get(f"http://ip-api.com/json/{ip}", timeout=5).json()
@@ -55,12 +59,13 @@ def get_country(ip):
     except:
         return "Unknown", ""
 
-# 🇫🇮 Флаг
+# 🇫🇮 флаг
 def get_flag(code):
     if len(code) != 2:
         return "🌍"
     return chr(127397 + ord(code[0])) + chr(127397 + ord(code[1]))
 
+# 🧹 очистка
 def clean_line(line):
     line = line.strip()
 
@@ -74,16 +79,15 @@ def clean_line(line):
     if not host or not port:
         return None
 
-    if not is_alive(host, port):
-        return None
+    # 🌍 определяем страну
+    if re.match(r"\d+\.\d+\.\d+\.\d+", host):
+        country, code = get_country(host)
+        flag = get_flag(code)
+    else:
+        country = "Domain"
+        flag = "🌐"
 
-    # только IP (иначе страна не определяется)
-    if not re.match(r"\d+\.\d+\.\d+\.\d+", host):
-        return None
-
-    country, code = get_country(host)
-    flag = get_flag(code)
-
+    # убираем старое имя
     line = re.sub(r"#.*", "", line)
 
     if line.startswith("vless://"):
@@ -99,21 +103,38 @@ def clean_line(line):
 
     return f"{line}#{name}"
 
+# 🚀 основной запуск
 def main():
     urls = load_sources()
     lines = fetch_configs(urls)
 
-    cleaned = []
+    alive = []
+    maybe = []
+
     for line in lines:
         cl = clean_line(line)
-        if cl:
-            cleaned.append(cl)
+        if not cl:
+            continue
 
-    cleaned = list(set(cleaned))
+        host, port = get_host_port(cl)
 
-    print(f"TOTAL: {len(cleaned)}")
+        try:
+            if is_alive(host, port):
+                alive.append(cl)
+            else:
+                maybe.append(cl)
+        except:
+            maybe.append(cl)
 
-    encoded = base64.b64encode("\n".join(cleaned).encode()).decode()
+    # 🔥 сначала живые
+    result = alive + maybe
+
+    # 🔥 ограничение количества (можешь менять)
+    result = result[:120]
+
+    print(f"ALIVE: {len(alive)} | TOTAL USED: {len(result)}")
+
+    encoded = base64.b64encode("\n".join(result).encode()).decode()
 
     with open(OUTPUT_FILE, "w") as f:
         f.write(encoded)
