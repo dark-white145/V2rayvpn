@@ -1,0 +1,27 @@
+name: Auto VPN Sub
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 */6 * * *"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install requests
+        run: pip install requests
+
+      - name: Run script
+        run: python script.py
+
+      - name: Push result
+        run: |
+          git config --global user.name "bot"
+          git config --global user.email "bot@example.com"
+          git add .
+          git commit -m "update" || echo "no changes"
+          git push
