@@ -47,6 +47,20 @@ def get_host_port(line):
     except:
         return None, None
 
+# 🌍 Определение страны
+def get_country(ip):
+    try:
+        r = requests.get(f"http://ip-api.com/json/{ip}", timeout=5).json()
+        return r.get("country", "Unknown"), r.get("countryCode", "")
+    except:
+        return "Unknown", ""
+
+# 🇫🇮 Флаг
+def get_flag(code):
+    if len(code) != 2:
+        return "🌍"
+    return chr(127397 + ord(code[0])) + chr(127397 + ord(code[1]))
+
 def clean_line(line):
     line = line.strip()
 
@@ -63,18 +77,27 @@ def clean_line(line):
     if not is_alive(host, port):
         return None
 
+    # только IP (иначе страна не определяется)
+    if not re.match(r"\d+\.\d+\.\d+\.\d+", host):
+        return None
+
+    country, code = get_country(host)
+    flag = get_flag(code)
+
     line = re.sub(r"#.*", "", line)
 
     if line.startswith("vless://"):
-        name = "VLESS"
+        proto = "VLESS"
     elif line.startswith("vmess://"):
-        name = "VMESS"
+        proto = "VMESS"
     elif line.startswith("trojan://"):
-        name = "TROJAN"
+        proto = "TROJAN"
     else:
-        name = "VPN"
+        proto = "VPN"
 
-    return f"{line}#{name} | {host}"
+    name = f"{flag} {country} | {proto}"
+
+    return f"{line}#{name}"
 
 def main():
     urls = load_sources()
